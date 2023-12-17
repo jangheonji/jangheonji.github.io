@@ -47,7 +47,7 @@ function draw() {
   let font_size = height*0.05; // 아래줄 사이즈
   let alphabet_size = height*0.1; // 초기화면 알파벳 사이즈
   jh_size = height*0.05; // J와 H 크기
-  let char_interval = width*0.04; //글자간 간격
+  let char_interval = width*0.025; //글자간 간격
   let y_interval = height*0.11; // 초기화면 알파벳 Y축 간격
 
 
