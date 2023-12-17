@@ -119,15 +119,15 @@ function draw() {
 
 
 function mouseClicked() {
-  clicked = true;
-
+  if (!clicked){
   //**
   for (let i = 0; i < 5; i++) {
     let b = new Boid(width / 2,height / 2);
     flock.addBoid(b);
   }
 }
-
+clicked = true;
+}
 
 
 // 시스템에 새로운 개체 더하기
