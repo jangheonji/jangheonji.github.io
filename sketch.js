@@ -3,6 +3,11 @@ let font;
 let c;
 let flock;
 let jh_size;
+let penrose;
+let distance;
+
+//**
+let characters = ["J","H"];
 
 window.addEventListener("resize", ()=>{
   resizeCanvas(window.innerWidth, window.innerHeight);
@@ -16,20 +21,31 @@ function preload(){
 function setup() {
   
   createCanvas(innerWidth,innerHeight)
+  frameRate(60)
   flock = new Flock();
   for (let i = 0; i < 5; i++) {
     let b = new Boid(width / 2,height / 2);
     flock.addBoid(b);
   }
+
+  penrose = new PenroseLSystem();
+  penrose.simulate(5);
+
+  //**
+  distance = 2.0;
 }
 
 function draw() {
-  background(192,59,60,)
+  background(192,59,60)
   
+  // penrose.render();
+
   // 텍스트
+  //**
   let font_size = height*0.05;
   jh_size = height*0.05;
 
+  //**
   let posx_text = 100;
   let posy_text = height - font_size;
 
@@ -92,11 +108,12 @@ function Boid(x, y) {
   this.maxspeed = 3;    // 최대 속도
   this.maxforce = 0.05; // 최대 조타력
 
-  if (random(1)<0.5){
-    this.character = 'J'
-  }else{
-    this.character = 'H'
-  }
+
+  
+  // 문자 J H 무작위 설정
+  let idx = int(random(characters.length) - 0.00001);
+  this.character = characters[idx];
+
 
 }
 
@@ -175,7 +192,7 @@ Boid.prototype.borders = function() {
 // 분리 Seperation
 // 인근의 개체를 확인하고 이로부터 거리를 유지하며 조타하게 만드는 메소드
 Boid.prototype.separate = function(boids) {
-  let desiredseparation = 25.0;
+  let desiredseparation = 25.0*distance;
   let steer = createVector(0, 0);
   let count = 0;
   // 매 개체가 시스템에 생성될 때마다, 서로 너무 가까운 위치에 있는지 여부를 확인
@@ -210,7 +227,7 @@ Boid.prototype.separate = function(boids) {
 // 배열 Alignment
 // 서로 인근에 있는 모든 개체에 대한 평균 속도 계산
 Boid.prototype.align = function(boids) {
-  let neighbordist = 50;
+  let neighbordist = 50*distance;
   let sum = createVector(0,0);
   let count = 0;
   for (let i = 0; i < boids.length; i++) {
@@ -235,7 +252,7 @@ Boid.prototype.align = function(boids) {
 // 응집 Cohesion
 // 서로 인근에 있는 모든 개체의 평균 위치값(예: 중앙)에 대해, 이 지점을 향한 조타 벡터값 계산
 Boid.prototype.cohesion = function(boids) {
-  let neighbordist = 50;
+  let neighbordist = 50*distance;
   let sum = createVector(0, 0);   // 빈 벡터값으로 시작하여 모든 위치들을 축적
   let count = 0;
   for (let i = 0; i < boids.length; i++) {
@@ -251,4 +268,114 @@ Boid.prototype.cohesion = function(boids) {
   } else {
     return createVector(0, 0);
   }
+}
+
+
+//=========================================
+// 펜로즈 타일
+
+function PenroseLSystem() {
+  this.steps = 0;
+
+ //아래는 펜로즈 마름모 L-시스템의 공리와 규칙들입니다.
+ //레퍼런스가 있다면 좋겠지만, 좋은 사례를 찾지 못했습니다.
+  this.axiom = "[X]++[X]++[X]++[X]++[X]";
+  this.ruleW = "YF++ZF----XF[-YF----WF]++";
+  this.ruleX = "+YF--ZF[---WF--XF]+";
+  this.ruleY = "-WF++XF[+++YF++ZF]-";
+  this.ruleZ = "--YF++++WF[+ZF++++XF]--XF";
+
+  //아래의 두 줄과 함께 놀아보세요!
+  this.startLength = 460.0;
+  this.theta = TWO_PI / 10.0; //36도, TWO_PI / 6.0도을 넣어보세요, ...
+  this.reset();
+}
+
+PenroseLSystem.prototype.simulate = function (gen) {
+while (this.getAge() < gen) {
+  this.iterate(this.production);
+}
+}
+
+PenroseLSystem.prototype.reset = function () {
+  this.production = this.axiom;
+  this.drawLength = this.startLength;
+  this.generations = 0;
+}
+
+PenroseLSystem.prototype.getAge = function () {
+  return this.generations;
+}
+
+//대체 규칙을 적용하여, 문자열의 새로운 반복 생성
+PenroseLSystem.prototype.iterate = function() {
+  let newProduction = "";
+
+  for(let i=0; i < this.production.length; ++i) {
+    let step = this.production.charAt(i);
+    // 현재 문자가 'W'이면,
+    // 이 현재 문자를 규칙에 맞게 대체합니다.
+    if (step == 'W') {
+      newProduction = newProduction + this.ruleW;
+    }
+    else if (step == 'X') {
+      newProduction = newProduction + this.ruleX;
+    }
+    else if (step == 'Y') {
+      newProduction = newProduction + this.ruleY;
+    }
+    else if (step == 'Z') {
+      newProduction = newProduction + this.ruleZ;
+    }
+    else {
+      // 모든 'F'를 drop 삭제하되, 
+      // 여타 문자들(예. '+', '-', '[', ']')은 건들지 않는다.
+      if (step != 'F') {
+        newProduction = newProduction + step;
+      }
+    }
+  }
+
+  this.drawLength = this.drawLength * 0.5;
+  this.generations++;
+  this.production = newProduction;
+}
+
+//문자열을 거북이 그래픽으로 변환
+PenroseLSystem.prototype.render = function () {
+  push();
+  translate(width / 2, height / 2);
+
+  this.steps += 20;
+  if(this.steps > this.production.length) {
+    this.steps = this.production.length;
+  }
+
+  for(let i=0; i<this.steps; ++i) {
+    let step = this.production.charAt(i);
+
+    //'W', 'X', 'Y', 'Z' 기호들은 거북이 동작에 상응하지 않습니다.
+    if( step == 'F') {
+      stroke(255, 60);
+      for(let j=0; j < this.repeats; j++) {
+        line(0, 0, 0, -this.drawLength);
+        noFill();
+        translate(0, -this.drawLength);
+      }
+      this.repeats = 1;
+    }
+    else if (step == '+') {
+      rotate(this.theta);
+    }
+    else if (step == '-') {
+      rotate(-this.theta);
+    }
+    else if (step == '[') {
+      push();
+    }
+    else if (step == ']') {
+      pop();
+    }
+  }
+  pop();
 }
