@@ -3,11 +3,17 @@ let font;
 let c;
 let flock;
 let jh_size;
-let penrose;
 let distance;
+
+// 첫화면 알파벳
+let alphabets;
+
+let clicked = false;
 
 //**
 let characters = ["J","H"];
+
+
 
 window.addEventListener("resize", ()=>{
   resizeCanvas(window.innerWidth, window.innerHeight);
@@ -19,50 +25,108 @@ function preload(){
 }
 
 function setup() {
+
+  alphabets = [];
+  for (let i=0;i<26;i++){
+    alphabets.push(char(i+65));
+  }
+
+  
   
   createCanvas(innerWidth,innerHeight)
   frameRate(60)
   flock = new Flock();
-  for (let i = 0; i < 5; i++) {
-    let b = new Boid(width / 2,height / 2);
-    flock.addBoid(b);
-  }
-
-  penrose = new PenroseLSystem();
-  penrose.simulate(5);
 
   //**
   distance = 2.0;
 }
 
 function draw() {
-  background(192,59,60)
-  
-  // penrose.render();
-
   // 텍스트
   //**
-  let font_size = height*0.05;
-  jh_size = height*0.05;
+  let font_size = height*0.05; // 아래줄 사이즈
+  let alphabet_size = height*0.1; // 초기화면 알파벳 사이즈
+  jh_size = height*0.05; // J와 H 크기
+  let char_interval = width*0.04; //글자간 간격
+  let y_interval = height*0.11; // 초기화면 알파벳 Y축 간격
+
 
   //**
   let posx_text = 100;
   let posy_text = height - font_size;
 
+  //배경화면
+  background(192,59,60)
+
+
+  noStroke()
+
+  textFont(font)
+
+  // 첫화면
+  if (!clicked){
+
+    // 
+    textSize(alphabet_size)
+
+    // 텍스트사이즈
+    let w1 = 0.0;
+    let w2 = 0.0;
+    for(let i=0;i<13;i++){
+      w1 += textWidth(alphabets[i]);
+    }
+    w1 += 12*char_interval;
+    for(let i=13;i<alphabets.length;i++){
+      w2 += textWidth(alphabets[i]);
+    }
+    w2 += 12*char_interval;
+
+
+    let xpos = (width-w1)/2.0;
+    for(let i=0;i<13;i++){
+      let alpha = alphabets[i]
+      if (alpha == 'H' || alpha == 'J'){
+        fill(255)
+      }else{
+        fill(137,24,26)
+      }
+      let twidth = textWidth(alpha)
+      text(alpha, xpos,height/2-y_interval)
+      xpos+=twidth + char_interval;
+    }
+
+    xpos = (width-w2)/2;
+    for(let i=13;i<alphabets.length;i++){
+      fill(137,24,26)
+      let alpha = alphabets[i]
+      let twidth = textWidth(alpha)
+      text(alpha, xpos,height/2+y_interval)
+      xpos+=twidth + char_interval;
+    }
+
+  }
 
   // 텍스트 렌더링
-  fill(137,24,26)
-  noStroke()
   textSize(font_size)
-  textFont(font)
+  fill(137,24,26)
   text("Initial Typography - Jang Heoyn Ji", posx_text,posy_text)
   
-  // 플로킹 렌더링
-  flock.run();
+  if (clicked){
+    // 플로킹 렌더링
+    flock.run();
+  }
 }
 
 
+function mouseClicked() {
+  clicked = true;
 
+  //**
+  for (let i = 0; i < 5; i++) {
+    let b = new Boid(width / 2,height / 2);
+    flock.addBoid(b);
+  }
+}
 
 
 
@@ -270,112 +334,3 @@ Boid.prototype.cohesion = function(boids) {
   }
 }
 
-
-//=========================================
-// 펜로즈 타일
-
-function PenroseLSystem() {
-  this.steps = 0;
-
- //아래는 펜로즈 마름모 L-시스템의 공리와 규칙들입니다.
- //레퍼런스가 있다면 좋겠지만, 좋은 사례를 찾지 못했습니다.
-  this.axiom = "[X]++[X]++[X]++[X]++[X]";
-  this.ruleW = "YF++ZF----XF[-YF----WF]++";
-  this.ruleX = "+YF--ZF[---WF--XF]+";
-  this.ruleY = "-WF++XF[+++YF++ZF]-";
-  this.ruleZ = "--YF++++WF[+ZF++++XF]--XF";
-
-  //아래의 두 줄과 함께 놀아보세요!
-  this.startLength = 460.0;
-  this.theta = TWO_PI / 10.0; //36도, TWO_PI / 6.0도을 넣어보세요, ...
-  this.reset();
-}
-
-PenroseLSystem.prototype.simulate = function (gen) {
-while (this.getAge() < gen) {
-  this.iterate(this.production);
-}
-}
-
-PenroseLSystem.prototype.reset = function () {
-  this.production = this.axiom;
-  this.drawLength = this.startLength;
-  this.generations = 0;
-}
-
-PenroseLSystem.prototype.getAge = function () {
-  return this.generations;
-}
-
-//대체 규칙을 적용하여, 문자열의 새로운 반복 생성
-PenroseLSystem.prototype.iterate = function() {
-  let newProduction = "";
-
-  for(let i=0; i < this.production.length; ++i) {
-    let step = this.production.charAt(i);
-    // 현재 문자가 'W'이면,
-    // 이 현재 문자를 규칙에 맞게 대체합니다.
-    if (step == 'W') {
-      newProduction = newProduction + this.ruleW;
-    }
-    else if (step == 'X') {
-      newProduction = newProduction + this.ruleX;
-    }
-    else if (step == 'Y') {
-      newProduction = newProduction + this.ruleY;
-    }
-    else if (step == 'Z') {
-      newProduction = newProduction + this.ruleZ;
-    }
-    else {
-      // 모든 'F'를 drop 삭제하되, 
-      // 여타 문자들(예. '+', '-', '[', ']')은 건들지 않는다.
-      if (step != 'F') {
-        newProduction = newProduction + step;
-      }
-    }
-  }
-
-  this.drawLength = this.drawLength * 0.5;
-  this.generations++;
-  this.production = newProduction;
-}
-
-//문자열을 거북이 그래픽으로 변환
-PenroseLSystem.prototype.render = function () {
-  push();
-  translate(width / 2, height / 2);
-
-  this.steps += 20;
-  if(this.steps > this.production.length) {
-    this.steps = this.production.length;
-  }
-
-  for(let i=0; i<this.steps; ++i) {
-    let step = this.production.charAt(i);
-
-    //'W', 'X', 'Y', 'Z' 기호들은 거북이 동작에 상응하지 않습니다.
-    if( step == 'F') {
-      stroke(255, 60);
-      for(let j=0; j < this.repeats; j++) {
-        line(0, 0, 0, -this.drawLength);
-        noFill();
-        translate(0, -this.drawLength);
-      }
-      this.repeats = 1;
-    }
-    else if (step == '+') {
-      rotate(this.theta);
-    }
-    else if (step == '-') {
-      rotate(-this.theta);
-    }
-    else if (step == '[') {
-      push();
-    }
-    else if (step == ']') {
-      pop();
-    }
-  }
-  pop();
-}
